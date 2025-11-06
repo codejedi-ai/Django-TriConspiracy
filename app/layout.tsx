@@ -1,6 +1,4 @@
-import Footer from '@/components/header-footer/Footer';
 import './globals.css';
-import Header from '@/components/header-footer/Header';
 
 export const metadata = {
   title: 'DKK Next Template',
@@ -14,10 +12,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <Header />
+      <body className="bg-gray-950 text-white">
         {children}
-        <Footer />
       </body>
     </html>
   )
