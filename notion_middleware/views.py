@@ -1,52 +1,6 @@
-from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse, HttpRequest
 from django.views.decorators.http import require_http_methods
-from django.forms.models import model_to_dict
-from .models import Event, Question, Prize, Placement
 from .notion_client import NotionClient
-
-
-def event_list(request: HttpRequest):
-    # Prefer Notion as the source of truth
-    try:
-        client = NotionClient()
-        events = client.list_events()
-    except Exception:
-        # Fallback to local DB if Notion is not configured
-        events = [
-            {
-                'id': str(ev.id),
-                'title': ev.title,
-                'description': ev.description,
-                'location': ev.location,
-                'starts_at': ev.starts_at.isoformat(),
-            }
-            for ev in Event.objects.order_by('-starts_at')
-        ]
-    return render(request, 'notion_middleware/event_list.html', {'events': events})
-
-
-def event_detail(request: HttpRequest, event_id: str):
-    try:
-        client = NotionClient()
-        event = client.get_event(event_id)
-        questions = client.list_questions(event_id)
-        prizes = client.list_prizes(event_id)
-        placements = client.list_placements(event_id)
-    except Exception:
-        # Fallback to local DB id
-        ev = get_object_or_404(Event, id=event_id)
-        event = {
-            'id': str(ev.id),
-            'title': ev.title,
-            'description': ev.description,
-            'location': ev.location,
-            'starts_at': ev.starts_at.isoformat(),
-        }
-        questions = list(ev.questions.all())
-        prizes = list(ev.prizes.all())
-        placements = list(ev.placements.all())
-    return render(request, 'notion_middleware/event_detail.html', {'event': event, 'questions': questions, 'prizes': prizes, 'placements': placements})
 
 
 @require_http_methods(["POST"])
