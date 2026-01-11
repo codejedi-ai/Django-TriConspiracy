@@ -52,11 +52,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'trivia',
+    'blog',
 ]
 
 # Custom User Model
-AUTH_USER_MODEL = 'trivia.PublicKeyUser'
+AUTH_USER_MODEL = 'blog.PublicKeyUser'
 
 
 MIDDLEWARE = [
@@ -103,12 +103,12 @@ DATABASES = {
 
 # Custom Authentication Backend
 AUTHENTICATION_BACKENDS = [
-    'trivia.auth_backend.PublicKeyAuthBackend',
+    'blog.auth_backend.PublicKeyAuthBackend',
     'django.contrib.auth.backends.ModelBackend',  # Keep for admin
 ]
 
-# Login URL - redirect to home page for key-based authentication
-LOGIN_URL = '/'
+# Login URL - redirect to login page for key-based authentication
+LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 
 # Password validation (not used for public key auth, but kept for admin)

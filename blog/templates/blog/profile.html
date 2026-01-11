@@ -1,0 +1,90 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Profile - {{ user.get_short_fingerprint }}{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col s12">
+      <h4>{% if is_own_profile %}Your Profile{% else %}User Profile{% endif %}</h4>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col s12 m8">
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title">Public Key</span>
+          <p class="grey-text text-darken-1">Your public key fingerprint: <strong>{{ user.get_short_fingerprint }}</strong></p>
+          <div style="margin-top: 20px;">
+            <label>Public Key (PEM format):</label>
+            <textarea id="public-key" class="materialize-textarea" readonly style="font-family: monospace; font-size: 0.85em; min-height: 200px;">{{ user.public_key }}</textarea>
+          </div>
+          <button class="btn waves-effect waves-light purple" onclick="copyPublicKey()" style="margin-top: 10px;">
+            <i class="material-icons left">content_copy</i>Copy Public Key
+          </button>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-content">
+          <span class="card-title">Your Posts</span>
+          {% if posts %}
+            <ul class="collection">
+              {% for post in posts %}
+                <li class="collection-item">
+                  <a href="{% url 'blog:post_detail' post.slug %}">{{ post.title }}</a>
+                  <span class="grey-text" style="float: right;">
+                    {{ post.created_at|date:"M d, Y" }}
+                    {% if post.signature_valid %}
+                      <i class="material-icons tiny green-text" title="Signature verified">verified</i>
+                    {% else %}
+                      <i class="material-icons tiny red-text" title="Signature not verified">error</i>
+                    {% endif %}
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="grey-text">You haven't created any posts yet.</p>
+            <a href="{% url 'blog:post_create' %}" class="btn purple waves-effect waves-light">Create Your First Post</a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <div class="col s12 m4">
+      <div class="card">
+        <div class="card-content" style="overflow-wrap: break-word; word-wrap: break-word;">
+          <span class="card-title">Account Info</span>
+          <p style="margin-bottom: 15px;"><strong>Fingerprint:</strong><br>
+            <span style="font-family: monospace; font-size: 0.85em; word-break: break-all; overflow-wrap: break-word; display: block; max-width: 100%; line-height: 1.4;">{{ user.fingerprint }}</span>
+          </p>
+          <p><strong>Created:</strong><br>{{ user.created_at|date:"F d, Y" }}</p>
+          {% if user.last_login %}
+            <p><strong>Last Login:</strong><br>{{ user.last_login|date:"F d, Y H:i" }}</p>
+          {% endif %}
+          <p><strong>Total Posts:</strong> {{ posts|length }}</p>
+        </div>
+        {% if is_own_profile %}
+        <div class="card-action">
+          <form method="post" action="{% url 'blog:auth_logout' %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn red waves-effect waves-light">
+              <i class="material-icons left">logout</i>Logout
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    function copyPublicKey() {
+      const textarea = document.getElementById('public-key');
+      textarea.select();
+      document.execCommand('copy');
+      M.toast({html: 'Public key copied to clipboard!'});
+    }
+  </script>
+{% endblock %}

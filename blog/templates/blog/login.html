@@ -1,0 +1,125 @@
+{% extends 'blog/base.html' %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+  <div class="row">
+    <div class="col s12 m8 offset-m2">
+      <div class="card">
+        <div class="card-content">
+          <span class="card-title">Login</span>
+          <p class="grey-text text-darken-1">Upload your private key file to login to your account.</p>
+          
+          <form id="login-form" enctype="multipart/form-data" style="margin-top: 30px;">
+            {% csrf_token %}
+            <div class="file-field input-field">
+              <div class="btn purple">
+                <span><i class="material-icons left">folder_open</i>Choose File</span>
+                <input type="file" id="private-key-file" name="private_key_file" accept=".pem,.key,.txt" required>
+              </div>
+              <div class="file-path-wrapper">
+                <input class="file-path validate" type="text" placeholder="Select your private_key.pem file">
+              </div>
+            </div>
+            <button type="submit" class="btn purple waves-effect waves-light" id="login-btn" style="width: 100%; margin-top: 20px;">
+              <i class="material-icons left">login</i>Login
+            </button>
+          </form>
+        </div>
+      </div>
+      
+      <div class="card" style="margin-top: 20px;">
+        <div class="card-content">
+          <span class="card-title">Don't have an account?</span>
+          <p>Generate a private key to create an account. Your private key will be downloaded - save it securely!</p>
+          <a href="{% url 'blog:generate_keys' %}" class="btn purple waves-effect waves-light" id="create-account-btn">
+            <i class="material-icons left">vpn_key</i>Create Account (Download Key)
+          </a>
+          <p class="grey-text text-darken-1" style="font-size: 0.9em; margin-top: 15px;">
+            <i class="material-icons tiny">info</i> Clicking this will generate and download your private key file. Save it securely - you'll need it to login.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Initialize Materialize file input
+    $('.file-field').each(function() {
+        $(this).find('input[type="file"]').on('change', function() {
+            const fileName = $(this)[0].files[0]?.name || '';
+            $(this).closest('.file-field').find('.file-path').val(fileName);
+        });
+    });
+
+    // Login form submission
+    $('#login-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        const fileInput = $('#private-key-file')[0];
+        if (!fileInput.files || fileInput.files.length === 0) {
+            M.toast({html: 'Please select a private key file'});
+            return;
+        }
+        
+        // Disable submit button
+        $('#login-btn').prop('disabled', true).html('<i class="material-icons left">hourglass_empty</i>Logging in...');
+        
+        // Get challenge first
+        $.get('{% url "blog:get_challenge" %}')
+            .done(function(challengeData) {
+                const challenge = challengeData.challenge;
+                
+                // Create FormData for file upload
+                const formData = new FormData();
+                formData.append('private_key_file', fileInput.files[0]);
+                formData.append('challenge', challenge);
+                
+                // Add CSRF token
+                const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+                if (csrfToken) {
+                    formData.append('csrfmiddlewaretoken', csrfToken);
+                }
+                
+                // Submit login
+                $.ajax({
+                    url: '{% url "blog:auth_login" %}',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            M.toast({html: 'Login successful! Redirecting...'});
+                            setTimeout(function() {
+                                window.location.href = '{% url "blog:post_list" %}';
+                            }, 500);
+                        } else {
+                            M.toast({html: 'Login failed: ' + (response.error || 'Unknown error')});
+                            $('#login-btn').prop('disabled', false).html('<i class="material-icons left">login</i>Login');
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.error || 'Login failed';
+                        M.toast({html: error});
+                        $('#login-btn').prop('disabled', false).html('<i class="material-icons left">login</i>Login');
+                    }
+                });
+            })
+            .fail(function() {
+                M.toast({html: 'Error getting challenge from server'});
+                $('#login-btn').prop('disabled', false).html('<i class="material-icons left">login</i>Login');
+            });
+    });
+    
+    // Handle account creation button
+    $('#create-account-btn').on('click', function(e) {
+        e.preventDefault();
+        window.location.href = $(this).attr('href');
+    });
+});
+</script>
+{% endblock %}
