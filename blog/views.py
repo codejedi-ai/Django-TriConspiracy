@@ -231,8 +231,14 @@ def post_create(request: HttpRequest):
         title = request.POST.get('title', '').strip()
         content = request.POST.get('content', '').strip()
         excerpt = request.POST.get('excerpt', '').strip()
-        author = request.POST.get('author', 'Anonymous').strip()
+        # Author is set to user's fingerprint (from hidden field)
+        author = request.POST.get('author', '').strip()
+        if not author and request.user.is_authenticated:
+            author = request.user.get_short_fingerprint()
+        if not author:
+            author = 'Anonymous'
         category_id = request.POST.get('category')
+        new_category_name = request.POST.get('new_category', '').strip()
         tag_ids = request.POST.getlist('tags')
         published = request.POST.get('published') == 'on'
         
@@ -282,7 +288,16 @@ def post_create(request: HttpRequest):
             signature_valid=True
         )
         
-        if category_id:
+        # Handle category - prioritize new category name over existing selection
+        if new_category_name:
+            # Create or get category by name
+            category_slug = slugify(new_category_name)
+            category, created = Category.objects.get_or_create(
+                slug=category_slug,
+                defaults={'name': new_category_name}
+            )
+            post.category = category
+        elif category_id:
             try:
                 post.category = Category.objects.get(id=category_id)
             except Category.DoesNotExist:
@@ -319,8 +334,14 @@ def api_create_post(request: HttpRequest):
     title = request.POST.get('title', '').strip()
     content = request.POST.get('content', '').strip()
     excerpt = request.POST.get('excerpt', '').strip()
-    author = request.POST.get('author', 'Anonymous').strip()
+    # Author is set to user's fingerprint (from hidden field)
+    author = request.POST.get('author', '').strip()
+    if not author and request.user.is_authenticated:
+        author = request.user.get_short_fingerprint()
+    if not author:
+        author = 'Anonymous'
     category_id = request.POST.get('category')
+    new_category_name = request.POST.get('new_category', '').strip()
     tag_ids = request.POST.getlist('tags')
     published = request.POST.get('published') == 'true'
     
@@ -366,7 +387,16 @@ def api_create_post(request: HttpRequest):
         signature_valid=True
     )
     
-    if category_id:
+    # Handle category - prioritize new category name over existing selection
+    if new_category_name:
+        # Create or get category by name
+        category_slug = slugify(new_category_name)
+        category, created = Category.objects.get_or_create(
+            slug=category_slug,
+            defaults={'name': new_category_name}
+        )
+        post.category = category
+    elif category_id:
         try:
             post.category = Category.objects.get(id=category_id)
         except Category.DoesNotExist:

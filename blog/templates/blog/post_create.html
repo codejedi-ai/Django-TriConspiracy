@@ -34,10 +34,8 @@
           <label for="excerpt">Excerpt (optional)</label>
         </div>
         
-        <div class="input-field">
-          <input id="author" name="author" type="text" value="Anonymous">
-          <label for="author">Author</label>
-        </div>
+        <!-- Author is automatically set to user's fingerprint -->
+        <input type="hidden" id="author" name="author" value="{{ user.get_short_fingerprint }}">
         
         <div class="input-field">
           <select id="category" name="category">
@@ -46,7 +44,13 @@
               <option value="{{ category.id }}">{{ category.name }}</option>
             {% endfor %}
           </select>
-          <label>Category</label>
+          <label>Category (select existing or create new below)</label>
+        </div>
+        
+        <div class="input-field">
+          <input id="new-category" name="new_category" type="text" placeholder="Enter a new category name to create it">
+          <label for="new-category">Create New Category (optional)</label>
+          <span class="helper-text">Users can create their own categories for organizing posts</span>
         </div>
         
         <div class="input-field">
@@ -90,6 +94,20 @@
     $(function(){
       $('select').formSelect();
       
+      // Handle category selection - clear new category field when selecting existing
+      $('#category').on('change', function() {
+        if ($(this).val()) {
+          $('#new-category').val('');
+        }
+      });
+      
+      // Handle new category input - clear category select when typing
+      $('#new-category').on('input', function() {
+        if ($(this).val().trim()) {
+          $('#category').val('').formSelect();
+        }
+      });
+      
       // Handle file input
       $('.file-field').each(function() {
         $(this).find('input[type="file"]').on('change', function() {
@@ -99,6 +117,7 @@
       });
       
       // Handle form submission with signing
+      const form = $('#create-post-form')[0];
       $('#create-post-form').on('submit', function(e) {
         e.preventDefault();
         
@@ -144,11 +163,11 @@
             // Set signature in form
             $('#signature').val(signatureB64);
             
-            // Submit the form
-            e.target.submit();
+            // Submit the form using the form element directly
+            form.submit();
           } catch (error) {
             console.error('Signing error:', error);
-            M.toast({html: 'Error signing post: ' + error.message});
+            M.toast({html: 'Error signing post: ' + (error.message || 'Unknown error')});
             $('#submit-btn').prop('disabled', false).html('<i class="material-icons left">save</i>Create & Sign Post');
           }
         };
